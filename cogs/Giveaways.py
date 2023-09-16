@@ -10,10 +10,6 @@ import discord_slash
 from discord import Member
 from discord.ext import commands, tasks
 from discord.ext.commands import MissingPermissions, has_permissions
-from discord_slash import SlashCommand, SlashContext
-from discord_slash.context import ComponentContext
-from discord_slash.model import ButtonStyle
-from discord_slash.utils import manage_components
 from main import get_prefix
 
 giveaway_users = []
@@ -47,12 +43,16 @@ class Giveaways(commands.Cog):
         self.bot = bot
         self.color = discord.Colour.blurple()
 
-    bot = commands.Bot(command_prefix=get_prefix, description="A bot made to describe the events in your server",
-                       case_insensitive=True)
-    slash = SlashCommand(bot, sync_commands=True, sync_on_cog_reload=True)
-
-    @bot.command(name="Giveaway", description="Allows you to make a giveaway")
-    @has_permissions(ban_members=True)
+    @commands.hybrid_command(name="giveaway",
+                             help="Start a giveaway",
+                             aliases=["gw", "gstart"],
+                             usage="Typerace")
+    @blacklist_check()
+    @ignore_check()
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    @commands.max_concurrency(1, per=commands.BucketType.default, wait=False)
+    @commands.guild_only()
+    @has_permissions(manage_messages=True)
     async def Giveaways(self, ctx):
         """
         Use this commands to create a giveaway
@@ -175,13 +175,13 @@ class Giveaways(commands.Cog):
                     giveaway_users.append(stripped_line)
 
             if str(ctx.author.id) not in giveaway_users:
-                await ctx.send("You have been entered into the giveaway!", hidden=True)
+                await ctx.send("You have joined the giveaway!", hidden=True)
                 a = ctx.author.id
                 with open(f"giveaway_users/{ctx.custom_id}.txt", "a") as file:
                     file.write(f"{str(a)}\n")
 
             else:
-                await ctx.send("You have already entered this giveaway!", hidden=True)
+                await ctx.send("You have already joined this giveaway!", hidden=True)
         except IOError:
             if len(str(ctx.custom_id)) <= 4:
                 await ctx.send("This giveaway has ended!", hidden=True)
